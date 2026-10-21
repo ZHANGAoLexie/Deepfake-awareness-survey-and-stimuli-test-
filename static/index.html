@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>真的还是假的？挑战</title>
+<style>
+:root{--bg:#46178f;--red:#e21b3c;--blue:#1368ce;--yellow:#d89e00;--green:#26890c;--pink:#864cbf}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,"PingFang HK","Microsoft JhengHei",sans-serif;background:var(--bg);color:#fff;min-height:100vh}
+#bar{height:8px;background:#0003}#bar i{display:block;height:100%;width:0;background:#ffd02b;transition:width .3s}
+#app{max-width:780px;margin:0 auto;padding:18px;min-height:calc(100vh - 8px);display:flex;flex-direction:column;justify-content:center;gap:14px}
+h1{font-size:2.1rem;margin:0}h2{font-size:1.3rem;margin:0;line-height:1.4}
+.tag{font-size:.85rem;opacity:.8;letter-spacing:.04em}
+.card{background:#fff;color:#222;border-radius:14px;padding:16px;font-size:.95rem;line-height:1.5}
+.grp{font-weight:700;margin:12px 0 2px;opacity:.9;font-size:.9rem}
+.opt,.go{display:block;width:100%;border:0;border-radius:10px;padding:14px 16px;margin:6px 0;font-size:1.05rem;color:#fff;font-weight:600;text-align:left;cursor:pointer;box-shadow:0 4px #0004;font-family:inherit}
+.opt:active,.go:active{transform:translateY(3px);box-shadow:0 1px #0004}
+.opt.sel{outline:4px solid #fff}
+.c0{background:var(--red)}.c1{background:var(--blue)}.c2{background:var(--yellow)}.c3{background:var(--green)}.c4{background:var(--pink)}
+.go{background:#ffd02b;color:#222;text-align:center;font-size:1.15rem}.go:disabled{opacity:.4}
+.row{display:grid;gap:10px}.r2{grid-template-columns:1fr 1fr}.r5{grid-template-columns:repeat(5,1fr)}.r2b{grid-template-columns:1fr 1fr}
+.big{height:34vh;min-height:150px;font-size:2.2rem;text-align:center;display:flex;align-items:center;justify-content:center;flex-direction:column;margin:0}
+.big small{font-size:1rem;font-weight:500}
+.num{text-align:center;font-size:1.6rem;padding:22px 0;margin:0}
+.lbl{display:flex;justify-content:space-between;font-size:.85rem;opacity:.85}
+input[type=text]{width:100%;padding:12px;border-radius:8px;border:0;font-size:1rem;margin:4px 0}
+.media{background:#000;border-radius:12px;display:flex;justify-content:center;overflow:hidden}
+.media img,.media video{max-width:100%;max-height:62vh;display:block}
+.timer{height:10px;background:#0004;border-radius:6px;overflow:hidden}.timer i{display:block;height:100%;background:#ffd02b;width:100%}
+.count{font-size:7rem;text-align:center;font-weight:800}
+.res{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #ddd}
+</style></head><body>
+<div id="bar"><i></i></div><div id="app"></div>
+<script>
+const $=s=>document.querySelector(s), app=$('#app');
+const S={pid:(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2)),
+ started:new Date().toISOString(),geo:{},demo:{},aware:{},trials:[]};
+let CFG=[],done=0;
+const params=new URLSearchParams(location.search);
+const DEMO_MODE=params.get('demo')==='1';
+const TOTAL=DEMO_MODE?3:1+11+15+10;
+const show=h=>{app.innerHTML=h;window.scrollTo(0,0)};
+const prog=()=>{$('#bar i').style.width=(100*done/TOTAL)+'%'};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
+const save=async (final=false)=>{
+ try{
+  const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({pid:S.pid,final,data:S})});
+  return await r.json();
+ }catch(e){return {ok:false}}
+};
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+
+/* ---------- questions ---------- */
+const O=(t,other)=>other?{t,other:1}:{t};
+const DEMO=[
+ {id:'D1',t:'你的年龄是？',o:['18–24','25–29','30–34','35–39','40 or above'].map(x=>O(x))},
+ {id:'D2',t:'你的性别是？',o:['女','男','非二元性别','不愿透露'].map(x=>O(x))},
+ {id:'D3',t:'你目前的学习阶段是？',groups:[
+  ['副学士 / 高级文凭 / 专科',['Associate Degree Student（副學士）','Associate Degree Student（高級文憑）','Associate Degree Student / Junior College Student（專科/高職）']],
+  ['本科',['Year 1 Undergraduate（大學一年級）','Year 2 Undergraduate（大學二年級）','Year 3 Undergraduate（大學三年級）','Year 4 Undergraduate（大學四年級）','Year 5 Undergraduate or above（大學五年級或以上）']],
+  ['研究生文凭与证书',['Postgraduate Diploma / Certificate (e.g., PGDE, PhDip)（學位教師教育文憑/深造文憑）']],
+  ['研究生',['Master’s Student (Taught/Coursework)（授課型碩士研究生）','Master’s Student (Research)（研究型碩士研究生）','Doctoral Student / PhD Candidate（博士研究生）']],
+  ['其他',[O('其他 (e.g., 否n-degree, Exchange student, Visiting student, Postdoc) – please specify',1)]]]},
+ {id:'D4',t:'你的专业领域是？',o:['自然科学','计算机科学','工程','数学','社会科学','人文学科','商科','教育学','艺术与设计'].map(x=>O(x)).concat([O('其他（请注明）',1)])},
+ {id:'D5',t:'你 18 岁之前主要在哪个国家或地区度过童年？',o:['香港特别行政区','中国内地','澳门特别行政区','台湾'].map(x=>O(x)).concat([O('其他亚洲国家（请注明）',1),O('否n-Asian country – please specify',1)])},
+ {id:'D6',t:'你目前就读的大学位于哪里？',o:['香港特别行政区','中国内地','澳门特别行政区','台湾'].map(x=>O(x)).concat([O('其他亚洲国家（请注明）',1),O('否n-Asian country – please specify',1)])},
+ {id:'D7',t:'你目前是否在童年主要生活的国家/地区以外学习？',o:['是','否'].map(x=>O(x))},
+ {id:'D8',t:'你平均每天花多少时间使用社交媒体？',o:['少于 1 小时','1–2 小时','3–4 小时','5–6 小时','超过 6 小时'].map(x=>O(x))},
+ {id:'D9',t:'你经常使用哪些社交媒体平台？（可多选）',multi:1,o:['Instagram','TikTok','YouTube','Facebook','X (Twitter)','Xiaohongshu (RED)','WeChat','Weibo','Threads','LinkedIn'].map(x=>O(x)).concat([O('其他（请注明）',1)])},
+ {id:'D10',t:'你以前是否遇到过你怀疑是 AI 生成或经过处理的内容（例如深度伪造视频、AI 生成图片、合成音频）？',o:['是','否','否t sure'].map(x=>O(x))},
+ {id:'D11',t:'你是否接受过与媒体素养、数字素养、AI 素养或虚假信息识别相关的正式教学或培训？',o:['是','否','否t sure'].map(x=>O(x))}
+];
+const AWARE=[
+ ['SA1','我通常能分辨出视频或图片是否由 AI 生成或经过处理。'],
+ ['SA2','我对识别深度伪造内容的能力很有信心。'],
+ ['SA3','我在浏览社交媒体时会主动寻找内容可能是 AI 生成的迹象。'],
+ ['SA4','我了解制作深度伪造内容常用的技术。'],
+ ['SA5','我曾经分享过后来发现是 AI 生成或经过处理的内容。'],
+ ['SO1','深度伪造是对社会的严重威胁。'],
+ ['SO2','我担心深度伪造对公众信任的影响。'],
+ ['SO3','平台应该采取更多措施来标注或删除深度伪造内容。'],
+ ['SO4','制作有害深度伪造内容的人应该承担法律后果。'],
+ ['SO5','如果我在社交媒体上看到深度伪造内容，我会举报。'],
+ ['SI1','我理解深度伪造既可用于娱乐，也可用于有害目的。'],
+ ['SI2','我知道深度伪造技术正变得越来越容易被普通人使用。'],
+ ['SI3','我理解在未经同意的情况下制作或分享真实人物的深度伪造内容，在香港或中国内地可能承担法律后果。'],
+ ['SI4','我知道有些深度伪造内容非常逼真，即使是专家也难以识别。'],
+ ['SI5','我知道在哪里可以找到识别 AI 生成内容的可靠信息。']
+];
+const FEATURES=['面部看起来不自然','光线 / 阴影','背景 / 边缘','音频 / 口型同步','整体质量 / 模糊','其他原因','否t sure'];
+
+function ask(q,cb){
+ const t0=performance.now();
+ let html=`<div class="tag">${q.id}</div><h2>${esc(q.t)}</h2>`;
+ if(q.groups){
+  q.groups.forEach(([g,opts])=>{
+   html+=`<div class="grp">${esc(g)}</div>`;
+   opts.forEach(o=>{
+    const text = typeof o === 'string' ? o : o.t;
+    const other = typeof o === 'string' ? '' : (o.other?'data-other=1':'');
+    html+=`<button class="opt c${Math.floor(Math.random()*5)}" data-v="${esc(text)}" ${other}>${esc(text)}</button>`;
+   });
+  });
+ }else{
+  html+=q.o.map(o=>`<button class="opt c${Math.floor(Math.random()*5)}" data-v="${esc(o.t)}" ${o.other?'data-other=1':''}>${esc(o.t)}</button>`).join('');
+ }
+ if(q.multi) html+=`<button class="go" id="next" disabled>Continue ▶</button>`;
+ show(html);
+ const sel=[];
+ app.querySelectorAll('.opt').forEach(b=>{
+  b.onclick=()=>{
+   if(b.dataset.other){
+    const inp=prompt('Please specify:')||'';
+    if(!inp) return;
+    b.dataset.v=inp;
+   }
+   if(q.multi){
+    b.classList.toggle('sel');
+    const i=sel.indexOf(b.dataset.v);
+    if(i>=0) sel.splice(i,1); else sel.push(b.dataset.v);
+    $('#next').disabled=!sel.length;
+   }else{
+    S.demo[q.id]=b.dataset.v;
+    if(b.dataset.other) S.demo[q.id+'_other']=b.dataset.v;
+    done++; prog(); cb();
+   }
+  };
+ });
+ if(q.multi) $('#next').onclick=()=>{S.demo[q.id]=sel; done++; prog(); cb()};
+}
+function scale(tag,t,left,right,cb){
+ const t0=performance.now();
+ show(`<div class="tag">${tag}</div><h2>${esc(t)}</h2>
+  <div class="row r5">${[1,2,3,4,5].map(n=>`<button class="opt c${n-1}" data-v="${n}">${n}</button>`).join('')}</div>
+  <div class="lbl"><span>${esc(left)}</span><span>${esc(right)}</span></div>`);
+ app.querySelectorAll('button').forEach(b=>b.onclick=()=>cb(+b.dataset.v,Math.round(performance.now()-t0)));
+}
+
+/* ---------- flow ---------- */
+function intro(){
+ S.geo={tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'',lang:navigator.language||'',screen:`${screen.width}x${screen.height}`,ua:navigator.userAgent};
+ if(DEMO_MODE){
+  show(`<h1>🎯 演示模式</h1><div class="card">演示用短版本（仅 3 轮）。<br>请打开声音观看视频。</div><button class="go" id="st">开始演示 ▶</button>`);
+  $('#st').onclick=()=>{S.consent=new Date().toISOString();done=1;prog();trialsIntro()};
+  return;
+ }
+ show(`<h1>🎯 真的还是假的？</h1>
+ <div class="card"><b>大约需要 15 分钟。</b>你将（1）回答几个关于自己的简单问题，（2）对 15 条陈述进行评分，然后（3）进行 10 轮快速挑战：观看图片、GIF 或视频，判断它是<b>真实</b>还是<b>虚假</b>的。<br><br>请在安静的地方进行；观看视频时请<b>打开声音</b>。没有陷阱问题，你的回答是匿名的。得分会在最后显示（过程中不显示）。<br><br><i>[请在此处替换为你的伦理审查批准的知情同意说明：研究目的、自愿参与、退出权利、数据使用、联系方式等。]</i></div>
+ <label class="card"><input type="checkbox" id="cons"> 我已年满 18 周岁，已阅读以上信息并同意参加。</label>
+ <button class="go" id="st" disabled>开始 ▶</button>`);
+ $('#cons').onchange=e=>$('#st').disabled=!e.target.checked;
+ $('#st').onclick=()=>{S.consent=new Date().toISOString();done=1;prog();demo(0)};
+}
+function demo(i){ if(i>=DEMO.length)return awareness(0); ask(DEMO[i],()=>demo(i+1)); }
+function awareness(i){
+ if(i===0&&!S.awareStarted){S.awareStarted=1;save();return show(`<h1>💡 快速陈述</h1><div class="card">请点击你对以下 15 条陈述的同意程度。<br>1 = 非常不同意，5 = 非常同意。</div><button class="go" id="g">开始 ▶</button>`),$('#g').onclick=()=>awareness(0)}
+ if(i>=AWARE.length){save();return trialsIntro()}
+ const [id,t]=AWARE[i];
+ scale(`STATEMENT ${i+1}/15`,t,'Strongly disagree','Strongly agree',v=>{S.aware[id]=v;done++;prog();save();awareness(i+1)});
+}
+function trialsIntro(){
+ const order=DEMO_MODE?CFG.slice(0,3):shuffle(CFG);
+ S.order=order.map(o=>o.id);
+ const n=order.length;
+ show(`<h1>🔥 真假挑战</h1><div class="card">${n} 轮。每轮：<b>观看</b> → 然后回答 <b>5 个快速问题</b>。<br>有些内容是真实的，有些是 AI 生成或经过处理的。请根据你的真实判断作答。🔊 请打开声音！</div><button class="go" id="g">开始第 1 轮 ▶</button>`);
+ $('#g').onclick=()=>{preloadNext(order,0); round(order,0)};
+}
+function preloadNext(order,i){
+ if(i+1>=order.length) return;
+ const st=order[i+1];
+ const link=document.createElement('link');
+ link.rel='preload'; link.as=st.type==='video'?'video':'image';
+ link.href='/static/stimuli/'+st.file;
+ document.head.appendChild(link);
+}
+function round(order,i){
+ if(i>=order.length)return finishAll();
+ const st=order[i],tag=`ROUND ${i+1}/${order.length}`;
+ let n=3;show(`<div class="tag">${tag}</div><div class="count" id="c">3</div><h2 style="text-align:center">准备好了…</h2>`);
+ const iv=setInterval(()=>{n--;if(n<=0){clearInterval(iv);stim(order,i)}else $('#c').textContent=n},700);
+}
+function stim(order,i){
+ const st=order[i],tag=`ROUND ${i+1}/${order.length}`,t0=performance.now(),url='/static/stimuli/'+st.file;
+ const isVideo=st.type==='video';
+ const dur=st.type==='image'?6000:st.type==='gif'?8000:0;
+ let media, extra='';
+ if(isVideo){
+  media=`<div class="media" id="media"><div style="color:#fff;padding:40px;text-align:center">视频加载中…</div></div>`;
+  extra=`<button class="go" id="playbtn">▶ 点击播放（有声音）</button>`;
+ }else{
+  media=`<div class="media"><img src="${url}?t=${Date.now()}" alt=""></div>`;
+  if(dur) extra=`<div class="timer"><i id="tm"></i></div>`;
+ }
+ show(`<div class="tag">${tag} · 请仔细观看</div>${media}${extra}
+  <button class="go" id="a" disabled>现在回答 →</button>`);
+ let fin=false;
+ const next=()=>{if(fin)return;fin=true;clearTimeout(to);S.cur={sid:st.id,order:i+1,view_ms:Math.round(performance.now()-t0)};question(order,i)};
+ let to=0;
+ if(isVideo){
+  const mediaEl=$('#media');
+  const playBtn=$('#playbtn');
+  const v=document.createElement('video');
+  v.id='v'; v.src=url; v.playsInline=true; v.preload='auto';
+  v.style.maxWidth='100%'; v.style.maxHeight='62vh';
+  playBtn.onclick=()=>{
+   playBtn.style.display='none';
+   mediaEl.innerHTML='';
+   mediaEl.appendChild(v);
+   v.play().then(()=>{
+    $('#a').disabled=false;
+    $('#a').onclick=next;
+   }).catch(()=>{
+    v.muted=true; v.play();
+    $('#a').disabled=false;
+    $('#a').onclick=next;
+   });
+  };
+  v.onended=next;
+  v.onerror=()=>{mediaEl.innerHTML='<div style="color:#fff;padding:20px">视频加载失败，请刷新页面。</div>'; $('#a').disabled=false; $('#a').onclick=next};
+  to=setTimeout(next,45000);
+ }else{
+  if(dur){const tm=$('#tm');tm.style.transition=`width ${dur}ms linear`;requestAnimationFrame(()=>requestAnimationFrame(()=>tm.style.width='0%'));to=setTimeout(next,dur)}
+  setTimeout(()=>{const a=$('#a');if(a){a.disabled=false;a.onclick=next}},2500);
+ }
+ preloadNext(order,i);
+}
+function question(order,i){
+ const tag=`ROUND ${i+1}/${order.length}`,T=S.cur;
+ const t0=performance.now();
+ show(`<div class="tag">${tag} · Q1/5</div><h2>你认为这段内容是…？</h2>
+  <div class="row r2"><button class="opt big c1" data-v="real">✅ 真实</button><button class="opt big c0" data-v="fake">🤖 虚假</button></div>`);
+ app.querySelectorAll('button').forEach(b=>b.onclick=()=>{T.q1=b.dataset.v;T.q1_rt_ms=Math.round(performance.now()-t0);
+  scale(`${tag} · Q2/5`,'你对自己的判断有多自信？','完全不自信','非常自信',v=>{T.q2_confidence=v;
+  scale(`${tag} · Q3/5`,'这段内容看起来有多真实？','完全不真实','完全真实',v=>{T.q3_authenticity=v;
+  scale(`${tag} · Q4/5`,'如果你在社交媒体上看到这个内容，你有多大可能在不进一步核实的情况下分享它？','非常不可能','非常可能',v=>{T.q4_share=v;
+  show(`<div class="tag">${tag} · Q5/5</div><h2>哪个特征对你的判断影响最大？</h2><div class="row r2">${FEATURES.map((f,k)=>`<button class="opt c${k%5}" data-f="${esc(f)}">${esc(f)}</button>`).join('')}</div>`);
+  app.querySelectorAll('button').forEach(x=>x.onclick=()=>{T.q5_feature=x.dataset.f;S.trials.push(T);S.cur=null;done++;prog();save();round(order,i+1)});
+ })})})});
+}
+async function finishAll(){
+ show('<h2 style="text-align:center">正在保存你的答案…</h2>');
+ let r=await save(true);
+ if(!r.ok){await new Promise(z=>setTimeout(z,1500));r=await save(true)}
+ const res=r.results||[];
+ const max=DEMO_MODE?3:10;
+ show(`<h1>🏁 感谢参与！</h1><div class="card"><b>你的得分： ${r.score??'–'} / ${max}</b><br><br>
+ ${res.map((x,k)=>`<div class="res"><span>Round ${k+1}</span><span>你判断为 ${x.answer} · 实际是 <b>${x.truth}</b> ${x.answer===x.truth?'✅':'❌'}</span></div>`).join('')}
+ <br>深度伪造内容有时很难识别，即使是专家也会判断错误。分享前请核实来源、查看是否有 AI 标识，并在多个平台交叉验证。<br><br><i>[请在此处添加研究者联系方式 / 事后说明 / 支持信息。]</i></div>`);
+ done=TOTAL;prog();
+}
+fetch('/api/config').then(r=>r.json()).then(c=>{CFG=c;intro()}).catch(()=>show('<h2>无法加载问卷，请刷新页面。</h2>'));
+</script></body></html>

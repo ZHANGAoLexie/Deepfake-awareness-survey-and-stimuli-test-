@@ -1,0 +1,12 @@
+[
+ {"id":"s01","file":"s01.mp4","type":"video","truth":"real","note":"case1 Jessica Alba (optimized from gif)"},
+ {"id":"s02","file":"s02.mp4","type":"video","truth":"fake","note":"case2 Evangeline Lilly (optimized from gif)"},
+ {"id":"s03","file":"s03.mp4","type":"video","truth":"real","note":"case3 youtuber"},
+ {"id":"s04","file":"s04.mp4","type":"video","truth":"fake","note":"case4 Scarlett Johansson"},
+ {"id":"s05","file":"s05.jpg","type":"image","truth":"real","note":"case5 bed"},
+ {"id":"s06","file":"s06.jpg","type":"image","truth":"real","note":"case6 bear"},
+ {"id":"s07","file":"s07.jpg","type":"image","truth":"fake","note":"case7 bed"},
+ {"id":"s08","file":"s08.jpg","type":"image","truth":"fake","note":"case8 panda"},
+ {"id":"s09","file":"s09.mp4","type":"video","truth":"real","note":"case9 Hugh Jackman head clip"},
+ {"id":"s10","file":"s10.mp4","type":"video","truth":"fake","note":"case10 fake head clip"}
+]
